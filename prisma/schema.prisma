@@ -1,0 +1,243 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==================== USER & AUTHENTICATION ====================
+
+enum UserRole {
+  ADMIN
+  MEMBER
+  ALUMNI
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  role      UserRole @default(ALUMNI)
+  
+  // Alumni specific fields
+  alumniProfile AlumniProfile?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+}
+
+// ==================== ALUMNI & BATCH ====================
+
+model Batch {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  name      String   @unique // e.g., "Batch 2020", "Class of 2020"
+  season    String?  // e.g., "Spring", "Fall"
+  
+  alumni    AlumniProfile[]
+  events    Event[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([year])
+}
+
+model AlumniProfile {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String   @unique
+  
+  // Alumni info
+  batch        Batch    @relation(fields: [batchId], references: [id])
+  batchId      String
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  branchId     String
+  
+  bio          String?
+  profileImage String?
+  coverImage   String?
+  
+  // Contact info
+  linkedIn     String?
+  twitter      String?
+  instagram    String?
+  website      String?
+  
+  // Additional info
+  currentRole  String?
+  currentCompany String?
+  location     String?
+  
+  isVerified   Boolean  @default(false)
+  
+  // Relationships
+  events       Event[] @relation("alumniAttended")
+  posts        Post[]
+  comments     Comment[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([batchId])
+  @@index([branchId])
+  @@index([isVerified])
+}
+
+model Branch {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g., "Computer Science", "Civil Engineering"
+  code        String   @unique // e.g., "CS", "CE"
+  description String?
+  
+  alumni      AlumniProfile[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== EVENTS ====================
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @db.Text
+  image       String?
+  
+  // Event details
+  startDate   DateTime
+  endDate     DateTime
+  location    String
+  batch       Batch       @relation(fields: [batchId], references: [id])
+  batchId     String
+  
+  status      EventStatus @default(PUBLISHED)
+  isVirtual   Boolean     @default(false)
+  meetLink    String?
+  
+  // Attendance
+  attendees   AlumniProfile[] @relation("alumniAttended")
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([batchId])
+  @@index([startDate])
+  @@index([status])
+}
+
+// ==================== ANNOUNCEMENTS ====================
+
+enum AnnouncementType {
+  NEWS
+  UPDATE
+  EVENT
+  OPPORTUNITY
+  WARNING
+}
+
+model Announcement {
+  id          String           @id @default(cuid())
+  title       String
+  content     String           @db.Text
+  type        AnnouncementType @default(NEWS)
+  image       String?
+  
+  isPinned    Boolean          @default(false)
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  publishedAt DateTime?
+  
+  @@index([type])
+  @@index([isPinned])
+  @@index([publishedAt])
+}
+
+// ==================== DOCUMENTS ====================
+
+enum DocumentType {
+  PDF
+  IMAGE
+  PRESENTATION
+  SPREADSHEET
+  VIDEO
+  OTHER
+}
+
+model Document {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  fileUrl     String
+  fileType    DocumentType
+  fileSize    Int          // in bytes
+  
+  category    String       // e.g., "Academic", "Job Resources", "Guidelines"
+  tags        String[]     @default([])
+  
+  downloads   Int          @default(0)
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  @@index([category])
+  @@index([tags])
+}
+
+// ==================== COMMUNITY / POSTS ====================
+
+model Post {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  image       String?
+  
+  author      AlumniProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    String
+  
+  comments    Comment[]
+  likes       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  
+  author    AlumniProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+  
+  likes     Int      @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([postId])
+  @@index([authorId])
+}
