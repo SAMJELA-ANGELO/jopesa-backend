@@ -21,6 +21,10 @@ import {
 } from '@nestjs/swagger';
 import { UploadService } from './upload.service';
 import { JwtGuard } from '../auth/guards/jwt.guard';
+import {
+  MAX_UPLOAD_FILE_SIZE_BYTES,
+  MAX_UPLOAD_FILES_PER_REQUEST,
+} from './upload.constants';
 
 @ApiTags('upload')
 @Controller('upload')
@@ -30,7 +34,7 @@ export class UploadController {
   @Post('image')
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES } }))
   @ApiConsumes('multipart/form-data')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -70,8 +74,8 @@ export class UploadController {
     }
 
     // Validate file type
-    if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('File must be an image');
+    if (!file.mimetype.startsWith('image/') && !file.mimetype.startsWith('video/')) {
+      throw new BadRequestException('File must be an image or video');
     }
 
     return this.uploadService.uploadFile(file, folder);
@@ -80,7 +84,7 @@ export class UploadController {
   @Post('images')
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
-  @UseInterceptors(FilesInterceptor('files', 10))
+  @UseInterceptors(FilesInterceptor('files', MAX_UPLOAD_FILES_PER_REQUEST, { limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES } }))
   @ApiConsumes('multipart/form-data')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -124,8 +128,8 @@ export class UploadController {
 
     // Validate file types
     for (const file of files) {
-      if (!file.mimetype.startsWith('image/')) {
-        throw new BadRequestException('All files must be images');
+      if (!file.mimetype.startsWith('image/') && !file.mimetype.startsWith('video/')) {
+        throw new BadRequestException('All files must be images or videos');
       }
     }
 
@@ -135,7 +139,7 @@ export class UploadController {
   @Post('document')
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES } }))
   @ApiConsumes('multipart/form-data')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({

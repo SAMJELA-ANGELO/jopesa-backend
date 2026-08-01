@@ -57,6 +57,8 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
+    await this.ensureDefaultAdmin();
+
     const user = await this.validateUser(loginDto.email, loginDto.password);
 
     if (!user) {
@@ -80,6 +82,31 @@ export class AuthService {
         phone: user.phone,
       },
     };
+  }
+
+  async ensureDefaultAdmin() {
+    const defaultAdminEmail = process.env.DEFAULT_ADMIN_EMAIL ?? 'admin@jopesa.org';
+    const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD ?? 'admin123';
+
+    const existingAdmin = await this.prisma.user.findUnique({
+      where: { email: defaultAdminEmail },
+    });
+
+    if (existingAdmin) {
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(defaultAdminPassword, 10);
+
+    await this.prisma.user.create({
+      data: {
+        email: defaultAdminEmail,
+        password: hashedPassword,
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'ADMIN',
+      },
+    });
   }
 
   async validateUser(email: string, password: string) {

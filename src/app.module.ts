@@ -12,6 +12,7 @@ import { EventModule } from './modules/events/events.module';
 import { AnnouncementModule } from './modules/announcements/announcements.module';
 import { DocumentModule } from './modules/documents/documents.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { PhotoModule } from './modules/photos/photos.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { UploadModule } from './modules/upload/upload.module';
     AnnouncementModule,
     DocumentModule,
     UploadModule,
+    PhotoModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

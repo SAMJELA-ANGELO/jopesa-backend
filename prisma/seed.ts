@@ -7,7 +7,7 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // Create batches (2007-2025)
-  const batches = [];
+  const batches: Array<{ id: string; year: number }> = [];
   for (let year = 2007; year <= 2025; year++) {
     const batch = await prisma.batch.upsert({
       where: { year },
@@ -42,11 +42,14 @@ async function main() {
   }
   console.log(`✅ Created ${branches.length} branches`);
 
+  const defaultAdminEmail = process.env.DEFAULT_ADMIN_EMAIL ?? 'admin@jopesa.org';
+  const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD ?? 'admin123';
+
   // Create test users and alumni profiles
   const testUsers = [
     {
-      email: 'admin@jopesa.org',
-      password: 'admin123',
+      email: defaultAdminEmail,
+      password: defaultAdminPassword,
       firstName: 'Admin',
       lastName: 'User',
       role: UserRole.ADMIN,

@@ -17,6 +17,11 @@ export class CreateBatchDto {
 }
 
 export class UpdateBatchDto {
+  @ApiPropertyOptional({ example: 2026 })
+  @IsOptional()
+  @IsInt()
+  year?: number;
+
   @ApiPropertyOptional({ example: 'Batch 2020 Updated' })
   @IsOptional()
   @IsString()

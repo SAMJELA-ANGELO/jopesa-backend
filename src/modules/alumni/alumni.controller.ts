@@ -9,6 +9,8 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,9 +18,11 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AlumniService } from './alumni.service';
 import { CreateAlumniDto, UpdateAlumniProfileDto, AlumniResponseDto } from './dto/alumni.dto';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 
 @ApiTags('alumni')
 @Controller('alumni')
@@ -175,6 +179,28 @@ export class AlumniController {
     @Query('take') take?: number,
   ) {
     return this.alumniService.getAlumniByBranch(branchId, skip, take);
+  }
+
+  @Get('me')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get current alumni profile',
+    description: 'Retrieve the authenticated alumni profile',
+  })
+  async getMe(@Request() req: any) {
+    return this.alumniService.findByUserId(req.user.id);
+  }
+
+  @Put('me')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update current alumni profile',
+    description: 'Update the authenticated alumni profile and user details',
+  })
+  async updateMe(@Request() req: any, @Body() body: UpdateAlumniProfileDto) {
+    return this.alumniService.updateMyProfile(req.user.id, body);
   }
 
   @Get(':id')

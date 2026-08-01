@@ -28,23 +28,16 @@
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
-    "@nestjs/jwt": "^11.0.2",
-    "@nestjs/passport": "^11.0.5",
+    "bcrypt": "^5.1.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.1",
     "@nestjs/throttler": "^6.5.0",
-    "@types/bcrypt": "^6.0.0",
-    "@types/passport-jwt": "^4.0.1",
-    "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cloudinary": "^2.9.0",
     "dotenv": "^17.4.2",
     "multer": "^2.1.1",
     "next-cloudinary": "^6.17.5",
-    "passport": "^0.7.0",
-    "passport-jwt": "^4.0.1",
-    "passport-local": "^1.0.0",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
@@ -87,6 +80,9 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

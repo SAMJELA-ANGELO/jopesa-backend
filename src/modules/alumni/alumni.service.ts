@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateAlumniDto, UpdateAlumniProfileDto } from './dto/alumni.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AlumniService {
@@ -25,11 +26,20 @@ export class AlumniService {
       throw new BadRequestException('Branch not found');
     }
 
-    // Create user
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
-        password: data.password, // TODO: Hash password before storing
+        password: hashedPassword,
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone,
@@ -138,9 +148,73 @@ export class AlumniService {
   }
 
   async updateProfile(id: string, data: UpdateAlumniProfileDto) {
+    const existing = await this.prisma.alumniProfile.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Alumni profile not found');
+    }
+
+    if (data.batchId) {
+      const batch = await this.prisma.batch.findUnique({ where: { id: data.batchId } });
+      if (!batch) {
+        throw new BadRequestException('Batch not found');
+      }
+    }
+
+    if (data.branchId) {
+      const branch = await this.prisma.branch.findUnique({ where: { id: data.branchId } });
+      if (!branch) {
+        throw new BadRequestException('Branch not found');
+      }
+    }
+
+    const {
+      firstName,
+      lastName,
+      phone,
+      batchId,
+      branchId,
+      bio,
+      profileImage,
+      coverImage,
+      linkedIn,
+      twitter,
+      instagram,
+      website,
+      currentRole,
+      currentCompany,
+      location,
+    } = data;
+
+    if (firstName !== undefined || lastName !== undefined || phone !== undefined) {
+      await this.prisma.user.update({
+        where: { id: existing.userId },
+        data: {
+          ...(firstName !== undefined ? { firstName } : {}),
+          ...(lastName !== undefined ? { lastName } : {}),
+          ...(phone !== undefined ? { phone } : {}),
+        },
+      });
+    }
+
     const alumni = await this.prisma.alumniProfile.update({
       where: { id },
-      data,
+      data: {
+        ...(batchId !== undefined ? { batchId } : {}),
+        ...(branchId !== undefined ? { branchId } : {}),
+        ...(bio !== undefined ? { bio } : {}),
+        ...(profileImage !== undefined ? { profileImage } : {}),
+        ...(coverImage !== undefined ? { coverImage } : {}),
+        ...(linkedIn !== undefined ? { linkedIn } : {}),
+        ...(twitter !== undefined ? { twitter } : {}),
+        ...(instagram !== undefined ? { instagram } : {}),
+        ...(website !== undefined ? { website } : {}),
+        ...(currentRole !== undefined ? { currentRole } : {}),
+        ...(currentCompany !== undefined ? { currentCompany } : {}),
+        ...(location !== undefined ? { location } : {}),
+      },
       include: {
         user: {
           select: {
@@ -155,6 +229,44 @@ export class AlumniService {
         branch: true,
       },
     });
+
+    return alumni;
+  }
+
+  async updateMyProfile(userId: string, data: UpdateAlumniProfileDto) {
+    const alumni = await this.prisma.alumniProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!alumni) {
+      throw new NotFoundException('Alumni profile not found for this user');
+    }
+
+    return this.updateProfile(alumni.id, data);
+  }
+
+  async findByUserId(userId: string) {
+    const alumni = await this.prisma.alumniProfile.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            role: true,
+          },
+        },
+        batch: true,
+        branch: true,
+      },
+    });
+
+    if (!alumni) {
+      throw new NotFoundException('Alumni profile not found for this user');
+    }
 
     return alumni;
   }

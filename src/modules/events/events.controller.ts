@@ -9,6 +9,8 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,9 +18,16 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { EventService } from './events.service';
-import { CreateEventDto, UpdateEventDto, EventResponseDto } from './dto/event.dto';
+import {
+  CreateEventDto,
+  UpdateEventDto,
+  EventResponseDto,
+  RegisterEventDto,
+} from './dto/event.dto';
+import { JwtGuard } from '../auth/guards/jwt.guard';
 
 @ApiTags('events')
 @Controller('events')
@@ -112,6 +121,33 @@ export class EventController {
     @Query('take') take?: number,
   ) {
     return this.eventService.getUpcomingEvents(skip, take);
+  }
+
+  @Get(':id/registration/me')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Check if current alumni is registered for an event',
+  })
+  @ApiParam({ name: 'id', type: String })
+  async getMyRegistration(@Param('id') id: string, @Request() req: any) {
+    return this.eventService.getMyRegistration(id, req.user.id);
+  }
+
+  @Post(':id/register')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Register current alumni for an event with custom form responses',
+  })
+  @ApiParam({ name: 'id', type: String })
+  async register(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body() body: RegisterEventDto,
+  ) {
+    return this.eventService.registerForEvent(id, req.user.id, body.responses || {});
   }
 
   @Get(':id')
