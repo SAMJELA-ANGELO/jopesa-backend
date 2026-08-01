@@ -5,7 +5,15 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+
+  // Allow requests from the frontend hosted at https://jopesa-connect.vercel.app
+  app.enableCors({
+    origin: 'https://jopesa-connect.vercel.app',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+    credentials: true,
+    optionsSuccessStatus: 204,
+  });
 
   // Enable global validation pipe
   app.useGlobalPipes(
