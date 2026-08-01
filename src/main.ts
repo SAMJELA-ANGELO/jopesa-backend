@@ -6,11 +6,23 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Allow requests from the frontend hosted at https://jopesa-connect.vercel.app
+  // Allow requests from all deployed frontend origins (Netlify & Vercel)
+  const allowedOrigins = [
+    'https://jopesa.netlify.app',
+    'https://jopesa-connect.vercel.app',
+  ];
+
   app.enableCors({
-    origin: 'https://jopesa-connect.vercel.app',
+    origin: (origin, callback) => {
+      // Allow non-browser requests (curl, mobile) or matching frontend origins
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Blocked by CORS'));
+      }
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: '*', // Fixed: wildcard string allows all headers cleanly
+    allowedHeaders: '*', // Wildcard string allows all custom & standard headers
     credentials: true,
     optionsSuccessStatus: 204,
   });
@@ -51,4 +63,5 @@ async function bootstrap() {
   console.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
 }
 bootstrap();
+
 
