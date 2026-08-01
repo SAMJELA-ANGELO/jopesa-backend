@@ -10,7 +10,7 @@ async function bootstrap() {
   app.enableCors({
     origin: 'https://jopesa-connect.vercel.app',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, *, Accept, Authorization',
+    allowedHeaders: '*', // Fixed: wildcard string allows all headers cleanly
     credentials: true,
     optionsSuccessStatus: 204,
   });
@@ -51,3 +51,4 @@ async function bootstrap() {
   console.log(`📚 Swagger docs available at http://localhost:${port}/api/docs`);
 }
 bootstrap();
+
