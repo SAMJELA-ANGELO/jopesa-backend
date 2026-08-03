@@ -117,6 +117,13 @@ enum EventStatus {
   COMPLETED
 }
 
+enum EventRegistrationStatus {
+  PENDING
+  APPROVED
+  FLAGGED
+  DECLINED
+}
+
 model Event {
   id          String      @id @default(cuid())
   title       String
@@ -163,13 +170,17 @@ model EventPhoto {
 }
 
 model EventRegistration {
-  id        String   @id @default(cuid())
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId   String
-  alumni    AlumniProfile @relation(fields: [alumniId], references: [id], onDelete: Cascade)
-  alumniId  String
-  responses Json     // { fieldId: value }
-  createdAt DateTime @default(now())
+  id             String                  @id @default(cuid())
+  event          Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId        String
+  alumni         AlumniProfile           @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+  alumniId       String
+  responses      Json                    // { fieldId: value }
+  status         EventRegistrationStatus @default(PENDING)
+  paidAmount     Float?
+  paymentProofUrl String?
+  paymentHistory Json?
+  createdAt      DateTime                @default(now())
 
   @@unique([eventId, alumniId])
   @@index([eventId])

@@ -6,23 +6,36 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Allow requests from all deployed frontend origins (Netlify & Vercel)
-  const allowedOrigins = [
+  const allowedOrigins = new Set<string>([
     'https://jopesa.netlify.app',
     'https://jopesa-connect.vercel.app',
-  ];
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3002',
+    ...(process.env.CORS_ALLOWED_ORIGINS?.split(',').map((value) => value.trim()).filter(Boolean) ?? []),
+  ]);
+
+  const isAllowedOrigin = (origin?: string) => {
+    if (!origin) return true;
+    if (allowedOrigins.has(origin)) return true;
+    return /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      || /^(https?:\/\/)?[\w-]+\.vercel\.app$/.test(origin)
+      || /^(https?:\/\/)?[\w-]+\.netlify\.app$/.test(origin);
+  };
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow non-browser requests (curl, mobile) or matching frontend origins
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Blocked by CORS'));
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: '*', // Wildcard string allows all custom & standard headers
+    allowedHeaders: '*',
     credentials: true,
     optionsSuccessStatus: 204,
   });

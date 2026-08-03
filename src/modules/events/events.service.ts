@@ -277,7 +277,14 @@ export class EventService {
     });
 
     if (existing) {
-      throw new BadRequestException('You are already registered for this event');
+      const updateData: any = {
+        responses: responses as any,
+        status: 'PENDING',
+      };
+      return this.prisma.eventRegistration.update({
+        where: { id: existing.id },
+        data: updateData,
+      });
     }
 
     const formFields = Array.isArray(event.registrationForm)

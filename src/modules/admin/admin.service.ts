@@ -132,6 +132,52 @@ export class AdminService {
     };
   }
 
+  async getRegistrations(skip: number = 0, take: number = 20) {
+    const [registrations, total] = await Promise.all([
+      this.prisma.eventRegistration.findMany({
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          event: {
+            select: { id: true, title: true },
+          },
+          alumni: {
+            select: {
+              id: true,
+              user: {
+                select: { id: true, email: true, firstName: true, lastName: true },
+              },
+              batch: {
+                select: { id: true, name: true, year: true },
+              },
+              branch: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.eventRegistration.count(),
+    ]);
+
+    return { data: registrations, total, skip, take };
+  }
+
+  async updateRegistrationStatus(registrationId: string, status: string) {
+    const data: any = { status };
+    return this.prisma.eventRegistration.update({
+      where: { id: registrationId },
+      data,
+    });
+  }
+
+  async deleteRegistration(registrationId: string) {
+    await this.prisma.eventRegistration.delete({
+      where: { id: registrationId },
+    });
+  }
+
   async verifyAlumni(userId: string) {
     const alumniProfile = await this.prisma.alumniProfile.findUnique({
       where: { userId },

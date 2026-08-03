@@ -24,6 +24,7 @@ import { JwtGuard } from '../auth/guards/jwt.guard';
 import {
   MAX_UPLOAD_FILE_SIZE_BYTES,
   MAX_UPLOAD_FILES_PER_REQUEST,
+  isAllowedUploadMimeType,
 } from './upload.constants';
 
 @ApiTags('upload')
@@ -73,8 +74,7 @@ export class UploadController {
       throw new BadRequestException('No file provided');
     }
 
-    // Validate file type
-    if (!file.mimetype.startsWith('image/') && !file.mimetype.startsWith('video/')) {
+    if (!isAllowedUploadMimeType(file.mimetype)) {
       throw new BadRequestException('File must be an image or video');
     }
 
@@ -126,9 +126,8 @@ export class UploadController {
       throw new BadRequestException('No files provided');
     }
 
-    // Validate file types
     for (const file of files) {
-      if (!file.mimetype.startsWith('image/') && !file.mimetype.startsWith('video/')) {
+      if (!isAllowedUploadMimeType(file.mimetype)) {
         throw new BadRequestException('All files must be images or videos');
       }
     }

@@ -147,6 +147,47 @@ export class AdminController {
     return this.adminService.getStats();
   }
 
+  @Get('registrations')
+  @ApiOperation({
+    summary: 'Get event registrations (Admin only)',
+    description: 'Retrieve paginated list of event registrations with alumni and event details',
+  })
+  @ApiQuery({ name: 'skip', required: false, type: Number, description: 'Number of records to skip' })
+  @ApiQuery({ name: 'take', required: false, type: Number, description: 'Number of records to take' })
+  @ApiResponse({ status: 200, description: 'Registrations retrieved successfully' })
+  async getRegistrations(
+    @Query('skip') skip: string = '0',
+    @Query('take') take: string = '20',
+  ) {
+    return this.adminService.getRegistrations(parseInt(skip), parseInt(take));
+  }
+
+  @Put('registrations/:registrationId/status')
+  @ApiOperation({
+    summary: 'Update registration status (Admin only)',
+    description: 'Approve, flag, or decline an event registration',
+  })
+  @ApiParam({ name: 'registrationId', type: String, description: 'Registration ID' })
+  @ApiResponse({ status: 200, description: 'Registration status updated successfully' })
+  async updateRegistrationStatus(
+    @Param('registrationId') registrationId: string,
+    @Body('status') status: string,
+  ) {
+    return this.adminService.updateRegistrationStatus(registrationId, status);
+  }
+
+  @Delete('registrations/:registrationId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete registration (Admin only)',
+    description: 'Remove an event registration record',
+  })
+  @ApiParam({ name: 'registrationId', type: String, description: 'Registration ID' })
+  @ApiResponse({ status: 204, description: 'Registration deleted successfully' })
+  async deleteRegistration(@Param('registrationId') registrationId: string) {
+    await this.adminService.deleteRegistration(registrationId);
+  }
+
   @Put('alumni/:userId/verify')
   @ApiOperation({
     summary: 'Verify alumni account (Admin only)',
