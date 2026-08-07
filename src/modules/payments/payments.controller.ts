@@ -6,6 +6,7 @@ import { Roles } from 'src/modules/auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { PaymentsService } from './payments.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
+import { DirectPayDto } from './dto/direct-pay.dto';
 import { BuyForOthersDto } from './dto/buy-for-others.dto';
 import { WebhookDto } from './dto/webhook.dto';
 
@@ -18,6 +19,13 @@ export class PaymentsController {
   @Post('initiate')
   async initiate(@Body() dto: InitiatePaymentDto) {
     return this.paymentsService.initiatePayment(dto);
+  }
+
+  @UseGuards(JwtGuard, RolesGuard, DefaultAdminGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('direct-pay')
+  async directPay(@Body() dto: DirectPayDto) {
+    return this.paymentsService.directPay(dto);
   }
 
   @UseGuards(JwtGuard, RolesGuard, DefaultAdminGuard)

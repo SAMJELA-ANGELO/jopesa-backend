@@ -30,6 +30,10 @@ export class UpdateContributionDto {
   @IsOptional()
   installments?: InstallmentDto[];
 
+  @IsString()
+  @IsOptional()
+  eventId?: string;
+
   @IsEnum(['ACTIVE', 'INACTIVE'])
   @IsOptional()
   status?: ContributionStatus;

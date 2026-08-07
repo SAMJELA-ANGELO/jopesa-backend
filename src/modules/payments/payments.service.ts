@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
+import { DirectPayDto } from './dto/direct-pay.dto';
 import { BuyForOthersDto } from './dto/buy-for-others.dto';
 import axios from 'axios';
 import * as crypto from 'crypto';
@@ -30,6 +31,7 @@ export class PaymentsService {
       userId: dto['userId'],
       externalId: dto['externalId'],
       redirectUrl: dto['redirectUrl'],
+      phone: dto['phone'] || undefined,
       message: dto['reason'] || dto['message'] || 'Payment',
     };
 
@@ -159,10 +161,42 @@ export class PaymentsService {
   }
 
   // Additional SDK-like helpers
-  async directPay(data: any) {
+  async directPay(dto: DirectPayDto) {
     const url = `${FAPSHI_BASE}/direct-pay`;
-    const resp = await axios.post(url, data, { headers: this.headers() });
-    return resp.data;
+    const payload = {
+      amount: dto.amount,
+      phone: dto.phone || undefined,
+      externalId: dto.externalId || undefined,
+      userId: dto.userId || undefined,
+      email: dto.email || undefined,
+      name: dto.name || undefined,
+      medium: dto.medium || undefined,
+      message: dto.message || 'Payment',
+    };
+
+    const resp = await axios.post(url, payload, { headers: this.headers() });
+    const data = resp.data || {};
+
+    try {
+      await this.prisma.payment.create({
+        data: {
+          transId: data.transId || data.data?.transId || null,
+          amount: Number(dto.amount),
+          currency: (dto as any)['currency'] ? String((dto as any)['currency']) : 'XAF',
+          status: 'CREATED',
+          userId: dto.userId || undefined,
+          email: dto.email || undefined,
+          externalId: dto.externalId || undefined,
+          reason: payload.message,
+          metadata: (dto as any)['metadata'] || undefined,
+          rawPayload: data,
+        },
+      });
+    } catch (e) {
+      this.logger.warn('Failed to persist payment record via direct pay: ' + (e as any).message);
+    }
+
+    return data;
   }
 
   async payout(data: any) {

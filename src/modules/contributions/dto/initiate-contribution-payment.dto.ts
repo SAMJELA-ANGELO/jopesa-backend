@@ -19,5 +19,9 @@ export class InitiateContributionPaymentDto {
 
   @IsOptional()
   @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
   message?: string;
 }

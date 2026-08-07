@@ -11,6 +11,17 @@ import { PaymentsService } from '../payments/payments.service';
 export class ContributionsService {
   constructor(private readonly prisma: PrismaService, private readonly paymentsService: PaymentsService) {}
 
+  private normalizeInstallments(installments?: any[]) {
+    if (!Array.isArray(installments)) return [];
+
+    return installments.map((installment, index) => {
+      const nextItem = { ...installment };
+      const label = String(nextItem?.label ?? '').trim();
+      nextItem.label = label || `Installment ${index + 1}`;
+      return nextItem;
+    });
+  }
+
   async findAll() {
     return this.prisma.contribution.findMany({ orderBy: { createdAt: 'desc' } });
   }
@@ -18,7 +29,7 @@ export class ContributionsService {
   async findOne(id: string) {
     const contribution = await this.prisma.contribution.findUnique({
       where: { id },
-      include: { payments: true },
+      include: { payments: true, event: true },
     });
     if (!contribution) {
       throw new NotFoundException('Contribution not found');
@@ -27,14 +38,18 @@ export class ContributionsService {
   }
 
   async create(createContributionDto: CreateContributionDto) {
-    const { title, type, description, installments, status } = createContributionDto;
+    const { title, type, description, installments, status, eventId } = createContributionDto;
+
+    const normalizedInstallments = this.normalizeInstallments(installments as any);
+
     return this.prisma.contribution.create({
       data: {
         title,
         type,
         description,
         status,
-        installments: installments as any,
+        eventId: eventId || undefined,
+        installments: normalizedInstallments as any,
       },
     });
   }
@@ -43,8 +58,12 @@ export class ContributionsService {
     await this.findOne(id);
     const updateData: any = { ...updateContributionDto };
     if (updateContributionDto.installments) {
-      updateData.installments = updateContributionDto.installments as any;
+      updateData.installments = this.normalizeInstallments(updateContributionDto.installments as any) as any;
     }
+    if (updateContributionDto.eventId !== undefined) {
+      updateData.eventId = updateContributionDto.eventId || null;
+    }
+    delete updateData.id;
     return this.prisma.contribution.update({
       where: { id },
       data: updateData,
@@ -106,13 +125,16 @@ export class ContributionsService {
     }
 
     const reason = initiatePaymentDto.message || `Payment for ${contribution.title}`;
-    const externalId = `contribution:${contributionId}:installment:${initiatePaymentDto.installmentId}`;
+    const safeContributionToken = String(contributionId).replace(/[^a-zA-Z0-9-]/g, '').slice(0, 24);
+    const safeInstallmentToken = String(initiatePaymentDto.installmentId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+    const externalId = `contribution-${safeContributionToken}-${safeInstallmentToken}`.slice(0, 64);
 
     const paymentPayload: any = {
       amount,
       currency: initiatePaymentDto.currency || 'XAF',
       userId: payerId,
       email: user.email,
+      phone: initiatePaymentDto.phone || user.phone || undefined,
       externalId,
       redirectUrl: initiatePaymentDto.redirectUrl,
       reason,
@@ -123,7 +145,7 @@ export class ContributionsService {
       },
     };
 
-    const fapshiResponse = await this.paymentsService.initiatePayment(paymentPayload);
+    const fapshiResponse = await this.paymentsService.directPay(paymentPayload);
     const transId = fapshiResponse?.transId || fapshiResponse?.data?.transId || null;
 
     const paymentData: any = {
@@ -140,9 +162,10 @@ export class ContributionsService {
     };
 
     if (transId) {
-      paymentData.payment = {
-        connect: { transId },
-      };
+      const payment = await this.prisma.payment.findUnique({ where: { transId } });
+      if (payment?.id) {
+        paymentData.paymentId = payment.id;
+      }
     }
 
     await this.prisma.contributionPayment.create({ data: paymentData as any });

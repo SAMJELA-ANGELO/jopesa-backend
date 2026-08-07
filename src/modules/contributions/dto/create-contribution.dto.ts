@@ -16,8 +16,8 @@ export class InstallmentDto {
   id: string;
 
   @IsString()
-  @IsNotEmpty()
-  label: string;
+  @IsOptional()
+  label?: string;
 
   @IsNotEmpty()
   amount: number;
@@ -43,6 +43,10 @@ export class CreateContributionDto {
   @ValidateNested({ each: true })
   @Type(() => InstallmentDto)
   installments: InstallmentDto[];
+
+  @IsString()
+  @IsOptional()
+  eventId?: string;
 
   @IsEnum(['ACTIVE', 'INACTIVE'])
   @IsOptional()

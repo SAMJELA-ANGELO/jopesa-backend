@@ -1,31 +1,26 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsNotEmpty, Length, Min } from 'class-validator';
 
-export class InitiatePaymentDto {
-  @IsNumber()
+export class DirectPayDto {
+  @IsInt()
+  @Min(100)
   amount: number;
 
-  @IsOptional()
   @IsString()
-  currency?: string;
+  @IsNotEmpty()
+  @Length(9, 12)
+  phone: string;
 
   @IsOptional()
   @IsString()
-  reason?: string;
-
-  @IsOptional()
-  metadata?: Record<string, any>;
+  medium?: string;
 
   @IsOptional()
   @IsString()
-  redirectUrl?: string;
+  name?: string;
 
   @IsOptional()
   @IsString()
   email?: string;
-
-  @IsOptional()
-  @IsString()
-  phone?: string;
 
   @IsOptional()
   @IsString()

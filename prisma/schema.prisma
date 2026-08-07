@@ -149,6 +149,7 @@ model Event {
   attendees     AlumniProfile[] @relation("alumniAttended")
   registrations EventRegistration[]
   photos        EventPhoto[]
+  contributions Contribution[]
   
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -346,12 +347,18 @@ model Contribution {
   description  String?
   status       ContributionStatus   @default(ACTIVE)
   installments Json?
+  eventId      String?
+
+  // Optional event link for registration-style contribution records
+  event        Event?               @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   // Payments made to this contribution
   payments     ContributionPayment[]
 
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
+
+  @@index([eventId])
 }
 
 model ContributionPayment {

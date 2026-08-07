@@ -12,7 +12,7 @@ describe('PaymentsController', () => {
       providers: [
         {
           provide: PaymentsService,
-          useValue: { initiatePayment: jest.fn(), buyForOthers: jest.fn(), handleWebhook: jest.fn() },
+          useValue: { initiatePayment: jest.fn(), directPay: jest.fn(), buyForOthers: jest.fn(), handleWebhook: jest.fn() },
         },
       ],
     }).compile();
@@ -25,6 +25,14 @@ describe('PaymentsController', () => {
     const dto: any = { amount: 500 };
     (service.initiatePayment as jest.Mock).mockResolvedValue({ ok: true });
     const res = await controller.initiate(dto);
+    expect(res.ok).toBe(true);
+  });
+
+  it('should delegate direct-pay to the service', async () => {
+    const dto: any = { amount: 500, phone: '690000000', externalId: 'external-123' };
+    (service.directPay as jest.Mock).mockResolvedValue({ ok: true });
+    const res = await controller.directPay(dto);
+    expect(service.directPay).toHaveBeenCalledWith(dto);
     expect(res.ok).toBe(true);
   });
 });
