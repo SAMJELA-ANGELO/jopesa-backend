@@ -257,6 +257,9 @@ export class AlumniService {
             lastName: true,
             phone: true,
             role: true,
+            contributionPayments: {
+              orderBy: { createdAt: 'desc' },
+            },
           },
         },
         batch: true,

@@ -13,6 +13,8 @@ import { AnnouncementModule } from './modules/announcements/announcements.module
 import { DocumentModule } from './modules/documents/documents.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { PhotoModule } from './modules/photos/photos.module';
+import { ContributionsModule } from './modules/contributions/contributions.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { PhotoModule } from './modules/photos/photos.module';
     DocumentModule,
     UploadModule,
     PhotoModule,
+    PaymentsModule,
+    ContributionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

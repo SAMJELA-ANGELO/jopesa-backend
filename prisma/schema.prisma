@@ -29,7 +29,8 @@ model User {
   role      UserRole @default(ALUMNI)
   
   // Alumni specific fields
-  alumniProfile AlumniProfile?
+  alumniProfile      AlumniProfile?
+  contributionPayments ContributionPayment[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -283,4 +284,96 @@ model Comment {
   
   @@index([postId])
   @@index([authorId])
+}
+
+// ==================== PAYMENTS ====================
+
+enum PaymentStatus {
+  CREATED
+  SUCCESSFUL
+  FAILED
+  EXPIRED
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  transId     String?       @unique
+  amount      Int
+  currency    String?       @default("XAF")
+  status      PaymentStatus @default(CREATED)
+  userId      String?       
+  email       String?
+  externalId  String?
+  reason      String?
+  metadata    Json?
+  rawPayload  Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Payments associated with contributions
+  contributionPayments ContributionPayment[]
+
+  @@index([userId])
+  @@index([transId])
+}
+
+// ==================== CONTRIBUTIONS / COLLECTIONS ====================
+
+enum ContributionType {
+  EVENT_REGISTRATION
+  ANNUAL_FEE
+  GENERAL
+  PROJECT
+  OTHER
+}
+
+enum ContributionStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ContributionPaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Contribution {
+  id           String               @id @default(cuid())
+  title        String
+  type         ContributionType     @default(GENERAL)
+  description  String?
+  status       ContributionStatus   @default(ACTIVE)
+  installments Json?
+
+  // Payments made to this contribution
+  payments     ContributionPayment[]
+
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+}
+
+model ContributionPayment {
+  id               String                    @id @default(cuid())
+  contribution     Contribution              @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  contributionId   String
+  payer            User?                     @relation(fields: [payerId], references: [id], onDelete: Cascade)
+  payerId          String?
+  payerName        String
+  payerEmail       String
+  amount           Float
+  installmentLabel String?
+  paymentDate      DateTime?
+  status           ContributionPaymentStatus @default(PENDING)
+  paymentReference String?
+  notes            String?
+  payment          Payment?                  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  paymentId        String?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @default(now()) @updatedAt
+
+  @@index([contributionId])
+  @@index([payerId])
+  @@index([paymentId])
 }

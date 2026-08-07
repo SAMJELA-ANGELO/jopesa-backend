@@ -21,12 +21,13 @@ import {
 import { AdminService } from './admin.service';
 import { JwtGuard } from '../auth/guards/jwt.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { DefaultAdminGuard } from '../auth/guards/default-admin.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
 @ApiTags('admin')
 @Controller('admin')
-@UseGuards(JwtGuard, RolesGuard)
+@UseGuards(JwtGuard, RolesGuard, DefaultAdminGuard)
 @Roles(UserRole.ADMIN)
 @ApiBearerAuth()
 export class AdminController {

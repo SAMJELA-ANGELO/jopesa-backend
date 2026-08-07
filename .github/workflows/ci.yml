@@ -1,0 +1,186 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      DIRECT_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Push Prisma schema
+        run: npx prisma db push --accept-data-loss
+      - name: Build
+        run: npm run build
+      - name: Run tests
+        run: npm test -- --runInBand
+
+  smoke:
+    needs: test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      DIRECT_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Push Prisma schema
+        run: npx prisma db push --accept-data-loss
+      - name: Build
+        run: npm run build
+      - name: Start server
+        run: |
+          node dist/main &
+          echo "server starting"
+      - name: Wait for API
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sSf http://localhost:3000/contributions >/dev/null 2>&1; then
+              echo "api up"; break
+            fi
+            sleep 1
+          done
+      - name: Run smoke tests
+        run: node ./.tmp/smoke.js
+
+  frontend-repo:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout frontend repo
+        uses: actions/checkout@v4
+        with:
+          repository: Bimme2audrey/JOPESA
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3000
+        run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [test, frontend-repo]
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      DIRECT_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout frontend repo
+        uses: actions/checkout@v4
+        with:
+          repository: Bimme2audrey/JOPESA
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install backend deps
+        run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Push Prisma schema
+        run: npx prisma db push --accept-data-loss
+      - name: Build backend
+        run: npm run build
+      - name: Start backend
+        run: |
+          node dist/main &
+          echo "server starting"
+      - name: Wait for backend
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sSf http://localhost:3000/contributions >/dev/null 2>&1; then
+              echo "api up"; break
+            fi
+            sleep 1
+          done
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3000
+        run: npm run build
+      - name: Start frontend
+        run: |
+          (cd frontend && PORT=3001 npm run start) &
+          echo "frontend starting"
+      - name: Wait for frontend
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sSf http://localhost:3001/ >/dev/null 2>&1; then
+              echo "frontend up"; break
+            fi
+            sleep 1
+          done
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      - name: Run Playwright tests
+        run: npx playwright test --config=playwright.config.ts

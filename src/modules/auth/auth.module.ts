@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { DefaultAdminGuard } from './guards/default-admin.guard';
 
 @Module({
   imports: [
@@ -15,8 +16,8 @@ import { LocalStrategy } from './strategies/local.strategy';
       signOptions: { expiresIn: '7d' },
     }),
   ],
-  providers: [AuthService, PrismaService, JwtStrategy, LocalStrategy],
+  providers: [AuthService, PrismaService, JwtStrategy, LocalStrategy, DefaultAdminGuard],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, PassportModule],
+  exports: [AuthService, JwtModule, PassportModule, DefaultAdminGuard],
 })
 export class AuthModule {}
