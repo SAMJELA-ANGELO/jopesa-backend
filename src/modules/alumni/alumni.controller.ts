@@ -90,6 +90,66 @@ export class AlumniController {
     return this.alumniService.findAll(skip, take, batch, branch);
   }
 
+  @Get('members')
+  @ApiOperation({
+    summary: 'Get public alumni directory',
+    description: 'Retrieve alumni entries for the alumni directory page with public profile data and computed membership status',
+  })
+  @ApiQuery({
+    name: 'skip',
+    required: false,
+    type: Number,
+    description: 'Number of records to skip',
+  })
+  @ApiQuery({
+    name: 'take',
+    required: false,
+    type: Number,
+    description: 'Number of records to take',
+  })
+  @ApiQuery({
+    name: 'batch',
+    required: false,
+    type: String,
+    description: 'Filter by batch ID',
+  })
+  @ApiQuery({
+    name: 'branch',
+    required: false,
+    type: String,
+    description: 'Filter by branch ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Directory list returned successfully',
+  })
+  async getDirectoryMembers(
+    @Query('skip') skip?: number,
+    @Query('take') take?: number,
+    @Query('batch') batch?: string,
+    @Query('branch') branch?: string,
+  ) {
+    return this.alumniService.getDirectoryMembers(Number(skip ?? 0), Number(take ?? 100), batch, branch);
+  }
+
+  @Get('members/:id')
+  @ApiOperation({
+    summary: 'Get public alumni detail',
+    description: 'Retrieve a public alumni detail record for the directory profile modal or detail page',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'ID of the alumni profile',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Public alumni detail returned successfully',
+  })
+  async getPublicMemberById(@Param('id') id: string) {
+    return this.alumniService.getPublicMemberById(id);
+  }
+
   @Get('email/:email')
   @ApiOperation({
     summary: 'Get alumni by email',

@@ -274,6 +274,130 @@ export class AlumniService {
     return alumni;
   }
 
+  private computeMembershipBadge(payments: any[] = []) {
+    const annualPayments = (payments || []).filter((payment) => {
+      const contribution = payment?.contribution;
+      const title = String(payment?.contribution?.title || '').toLowerCase();
+      return contribution?.type === 'ANNUAL_FEE' || title.includes('annual');
+    });
+
+    if (annualPayments.length > 0) {
+      const hasPaidThisYear = annualPayments.some((payment) => {
+        const paymentDate = new Date(payment?.paymentDate);
+        const currentYear = new Date().getFullYear();
+        return !Number.isNaN(paymentDate.getTime()) && paymentDate.getFullYear() === currentYear && payment?.status === 'COMPLETED';
+      });
+
+      return hasPaidThisYear ? 'ACTIVE' : 'PASSIVE';
+    }
+
+    if ((payments || []).length > 0) {
+      return 'INACTIVE';
+    }
+
+    return 'DORMANT';
+  }
+
+  private serializePublicMember(member: any) {
+    const user = member?.user;
+    const contributionPayments = Array.isArray(user?.contributionPayments) ? user.contributionPayments : [];
+    const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'Alumni';
+
+    return {
+      ...member,
+      membershipBadge: member?.membershipBadge ?? this.computeMembershipBadge(contributionPayments),
+      user: {
+        ...user,
+        fullName,
+        bio: member?.bio ?? user?.bio ?? null,
+        profileImage: member?.profileImage ?? user?.profileImage ?? null,
+        coverImage: member?.coverImage ?? user?.coverImage ?? null,
+        currentRole: member?.currentRole ?? user?.currentRole ?? null,
+        currentCompany: member?.currentCompany ?? user?.currentCompany ?? null,
+        location: member?.location ?? user?.location ?? null,
+        linkedIn: member?.linkedIn ?? user?.linkedIn ?? null,
+        twitter: member?.twitter ?? user?.twitter ?? null,
+        instagram: member?.instagram ?? user?.instagram ?? null,
+        website: member?.website ?? user?.website ?? null,
+      },
+    };
+  }
+
+  async getDirectoryMembers(skip: number = 0, take: number = 100, batch?: string, branch?: string) {
+    const where: any = {};
+
+    if (batch) {
+      where.batch = { id: batch };
+    }
+    if (branch) {
+      where.branch = { id: branch };
+    }
+
+    const members = await this.prisma.alumniProfile.findMany({
+      where,
+      skip,
+      take,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            role: true,
+            contributionPayments: {
+              include: { contribution: true },
+              orderBy: { createdAt: 'desc' },
+            },
+          },
+        },
+        batch: true,
+        branch: true,
+      },
+    });
+
+    const total = await this.prisma.alumniProfile.count({ where });
+
+    return {
+      data: members.map((member) => this.serializePublicMember(member)),
+      total,
+      skip,
+      take,
+    };
+  }
+
+  async getPublicMemberById(id: string) {
+    const member = await this.prisma.alumniProfile.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            role: true,
+            contributionPayments: {
+              include: { contribution: true },
+              orderBy: { createdAt: 'desc' },
+            },
+          },
+        },
+        batch: true,
+        branch: true,
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Alumni profile not found');
+    }
+
+    return this.serializePublicMember(member);
+  }
+
   async deleteAlumni(id: string) {
     // Get user ID first
     const alumni = await this.prisma.alumniProfile.findUnique({
