@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { DirectPayDto } from './dto/direct-pay.dto';
@@ -35,7 +35,14 @@ export class PaymentsService {
       message: dto['reason'] || dto['message'] || 'Payment',
     };
 
-    const resp = await axios.post(url, payload, { headers: this.headers() });
+    let resp;
+    try {
+      resp = await axios.post(url, payload, { headers: this.headers() });
+    } catch (error) {
+      const responseMessage = (error as any)?.response?.data?.message;
+      const message = Array.isArray(responseMessage) ? responseMessage.join(', ') : responseMessage;
+      throw new BadRequestException(message || 'Payment provider rejected the transaction');
+    }
     // Persist a Payment record if transId returned
     const data = resp.data || {};
     try {

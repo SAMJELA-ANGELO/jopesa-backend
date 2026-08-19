@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateContributionDto } from './dto/create-contribution.dto';
 import { UpdateContributionDto } from './dto/update-contribution.dto';
@@ -114,12 +114,16 @@ export class ContributionsService {
     const contribution = await this.findOne(contributionId);
     const installment = ((contribution as any).installments || []).find((inst: any) => inst.id === initiatePaymentDto.installmentId);
 
+    if (!installment) {
+      throw new BadRequestException('Selected installment not found');
+    }
+
     const user = await this.prisma.user.findUnique({ where: { id: payerId } });
     if (!user) {
       throw new NotFoundException('Payer not found');
     }
 
-    const amount = initiatePaymentDto.amount ?? Number(installment?.amount ?? 0);
+    const amount = Number(installment.amount ?? 0);
     if (!amount || amount <= 0) {
       throw new NotFoundException('Invalid payment amount');
     }
