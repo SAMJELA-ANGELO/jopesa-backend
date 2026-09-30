@@ -49,6 +49,11 @@ export class UpdateAnnouncementDto {
   @IsEnum(AnnouncementType)
   type?: AnnouncementType;
 
+  @ApiPropertyOptional({ example: 'https://example.com/image.jpg' })
+  @IsOptional()
+  @IsUrl()
+  image?: string;
+
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
