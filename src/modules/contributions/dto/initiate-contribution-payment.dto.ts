@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsString, Matches } from 'class-validator';
 
 export class InitiateContributionPaymentDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  installmentId: string;
+  installmentId?: string;
 
   @IsOptional()
   @IsNumber()
@@ -19,6 +19,7 @@ export class InitiateContributionPaymentDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^6\d{8}$/, { message: 'Phone number must be 9 digits and start with 6' })
   phone?: string;
 
   @IsOptional()

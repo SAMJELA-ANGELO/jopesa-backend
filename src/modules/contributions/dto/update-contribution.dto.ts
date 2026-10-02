@@ -6,6 +6,7 @@ export type ContributionType =
   | 'EVENT_REGISTRATION'
   | 'ANNUAL_FEE'
   | 'GENERAL'
+  | 'DONATION'
   | 'PROJECT'
   | 'OTHER';
 
@@ -16,7 +17,7 @@ export class UpdateContributionDto {
   @IsOptional()
   title?: string;
 
-  @IsEnum(['EVENT_REGISTRATION', 'ANNUAL_FEE', 'GENERAL', 'PROJECT', 'OTHER'])
+  @IsEnum(['EVENT_REGISTRATION', 'ANNUAL_FEE', 'GENERAL', 'DONATION', 'PROJECT', 'OTHER'])
   @IsOptional()
   type?: ContributionType;
 

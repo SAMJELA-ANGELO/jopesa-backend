@@ -69,6 +69,7 @@ model AlumniProfile {
   bio          String?
   profileImage String?
   coverImage   String?
+  relationshipStatus String?
   
   // Contact info
   linkedIn     String?
@@ -324,6 +325,7 @@ enum ContributionType {
   EVENT_REGISTRATION
   ANNUAL_FEE
   GENERAL
+  DONATION
   PROJECT
   OTHER
 }

@@ -73,6 +73,11 @@ export class UpdateAlumniProfileDto {
   @IsString()
   bio?: string;
 
+  @ApiPropertyOptional({ example: 'Married' })
+  @IsOptional()
+  @IsString()
+  relationshipStatus?: string;
+
   @ApiPropertyOptional({ example: 'https://example.com/profile.jpg' })
   @Transform(emptyToUndefined)
   @IsOptional()
@@ -134,6 +139,7 @@ export class AlumniResponseDto {
   batchId: string;
   branchId: string;
   bio?: string;
+  relationshipStatus?: string;
   profileImage?: string;
   coverImage?: string;
   linkedIn?: string;

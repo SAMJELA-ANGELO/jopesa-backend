@@ -112,9 +112,11 @@ export class ContributionsService {
 
   async initiatePayment(contributionId: string, initiatePaymentDto: InitiateContributionPaymentDto, payerId: string) {
     const contribution = await this.findOne(contributionId);
-    const installment = ((contribution as any).installments || []).find((inst: any) => inst.id === initiatePaymentDto.installmentId);
+    const isDonation = contribution.type === 'DONATION';
+    const installments = Array.isArray(contribution.installments) ? contribution.installments as any[] : [];
+    const installment = installments.find((inst: any) => inst.id === initiatePaymentDto.installmentId);
 
-    if (!installment) {
+    if (!isDonation && !installment) {
       throw new BadRequestException('Selected installment not found');
     }
 
@@ -123,14 +125,16 @@ export class ContributionsService {
       throw new NotFoundException('Payer not found');
     }
 
-    const amount = Number(installment.amount ?? 0);
-    if (!amount || amount <= 0) {
-      throw new NotFoundException('Invalid payment amount');
+    const amount = Number(isDonation ? initiatePaymentDto.amount : installment.amount ?? 0);
+    if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount <= 0) {
+      throw new BadRequestException(isDonation ? 'Enter a valid donation amount' : 'Invalid payment amount');
     }
 
     const reason = initiatePaymentDto.message || `Payment for ${contribution.title}`;
     const safeContributionToken = String(contributionId).replace(/[^a-zA-Z0-9-]/g, '').slice(0, 24);
-    const safeInstallmentToken = String(initiatePaymentDto.installmentId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+    const safeInstallmentToken = isDonation
+      ? `donation-${Date.now()}`
+      : String(initiatePaymentDto.installmentId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
     const externalId = `contribution-${safeContributionToken}-${safeInstallmentToken}`.slice(0, 64);
 
     const paymentPayload: any = {
@@ -144,7 +148,7 @@ export class ContributionsService {
       reason,
       metadata: {
         contributionId,
-        installmentId: initiatePaymentDto.installmentId,
+        installmentId: initiatePaymentDto.installmentId || null,
         contributionTitle: contribution.title,
       },
     };
@@ -158,7 +162,7 @@ export class ContributionsService {
       payerName: `${user.firstName} ${user.lastName}`,
       payerEmail: user.email,
       amount,
-      installmentLabel: installment?.label,
+      installmentLabel: installment?.label || (isDonation ? 'Voluntary donation' : undefined),
       status: 'PENDING',
       paymentDate: new Date(),
       paymentReference: transId,

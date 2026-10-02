@@ -46,7 +46,8 @@ export class EventService {
     const where: any = {};
 
     if (status) {
-      where.status = status;
+      const statuses = status.split(',').map((value) => value.trim()).filter(Boolean);
+      where.status = statuses.length > 1 ? { in: statuses } : statuses[0];
     }
     if (batchId) {
       where.batches = {

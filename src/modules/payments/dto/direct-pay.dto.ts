@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, IsNotEmpty, Length, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsNotEmpty, Matches, Min } from 'class-validator';
 
 export class DirectPayDto {
   @IsInt()
@@ -7,7 +7,7 @@ export class DirectPayDto {
 
   @IsString()
   @IsNotEmpty()
-  @Length(9, 12)
+  @Matches(/^6\d{8}$/, { message: 'Phone number must be 9 digits and start with 6' })
   phone: string;
 
   @IsOptional()

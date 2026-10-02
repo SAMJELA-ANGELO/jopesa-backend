@@ -1,0 +1,4 @@
+ALTER TYPE "ContributionType" ADD VALUE IF NOT EXISTS 'DONATION';
+
+ALTER TABLE "AlumniProfile"
+ADD COLUMN IF NOT EXISTS "relationshipStatus" TEXT;
