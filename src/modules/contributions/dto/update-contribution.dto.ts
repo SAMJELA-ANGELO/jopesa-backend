@@ -4,6 +4,7 @@ import { InstallmentDto } from './create-contribution.dto';
 
 export type ContributionType =
   | 'EVENT_REGISTRATION'
+  | 'REGISTRATION_FEE'
   | 'ANNUAL_FEE'
   | 'GENERAL'
   | 'DONATION'
@@ -17,7 +18,7 @@ export class UpdateContributionDto {
   @IsOptional()
   title?: string;
 
-  @IsEnum(['EVENT_REGISTRATION', 'ANNUAL_FEE', 'GENERAL', 'DONATION', 'PROJECT', 'OTHER'])
+  @IsEnum(['EVENT_REGISTRATION', 'REGISTRATION_FEE', 'ANNUAL_FEE', 'GENERAL', 'DONATION', 'PROJECT', 'OTHER'])
   @IsOptional()
   type?: ContributionType;
 

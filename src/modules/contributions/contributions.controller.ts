@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { ContributionsService } from './contributions.service';
 import { JwtGuard } from 'src/modules/auth/guards/jwt.guard';
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
@@ -17,6 +27,20 @@ export class ContributionsController {
     return this.contributionsService.findAll();
   }
 
+  @UseGuards(JwtGuard)
+  @Get('registration/overview')
+  async getRegistrationOverview(
+    @Request() req: { user: { id: string; role: string } },
+  ) {
+    const overview = await this.contributionsService.getRegistrationOverview(
+      req.user.id,
+    );
+    return {
+      ...overview,
+      isSystemAdmin: req.user.role === UserRole.ADMIN,
+    };
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.contributionsService.findOne(id);
@@ -32,7 +56,10 @@ export class ContributionsController {
   @UseGuards(JwtGuard, RolesGuard, DefaultAdminGuard)
   @Roles(UserRole.ADMIN)
   @Put(':id')
-  async update(@Param('id') id: string, @Body() updateContributionDto: UpdateContributionDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateContributionDto: UpdateContributionDto,
+  ) {
     return this.contributionsService.update(id, updateContributionDto);
   }
 

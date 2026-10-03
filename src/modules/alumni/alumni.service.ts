@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
+import { computeMembershipBadge } from './membership-badge';
 import { CreateAlumniDto, UpdateAlumniProfileDto } from './dto/alumni.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -276,30 +277,6 @@ export class AlumniService {
     return alumni;
   }
 
-  private computeMembershipBadge(payments: any[] = []) {
-    const annualPayments = (payments || []).filter((payment) => {
-      const contribution = payment?.contribution;
-      const title = String(payment?.contribution?.title || '').toLowerCase();
-      return contribution?.type === 'ANNUAL_FEE' || title.includes('annual');
-    });
-
-    if (annualPayments.length > 0) {
-      const hasPaidThisYear = annualPayments.some((payment) => {
-        const paymentDate = new Date(payment?.paymentDate);
-        const currentYear = new Date().getFullYear();
-        return !Number.isNaN(paymentDate.getTime()) && paymentDate.getFullYear() === currentYear && payment?.status === 'COMPLETED';
-      });
-
-      return hasPaidThisYear ? 'ACTIVE' : 'PASSIVE';
-    }
-
-    if ((payments || []).length > 0) {
-      return 'INACTIVE';
-    }
-
-    return 'DORMANT';
-  }
-
   private serializePublicMember(member: any) {
     const user = member?.user;
     const contributionPayments = Array.isArray(user?.contributionPayments) ? user.contributionPayments : [];
@@ -307,7 +284,7 @@ export class AlumniService {
 
     return {
       ...member,
-      membershipBadge: member?.membershipBadge ?? this.computeMembershipBadge(contributionPayments),
+      membershipBadge: member?.membershipBadge ?? computeMembershipBadge(contributionPayments),
       user: {
         ...user,
         fullName,

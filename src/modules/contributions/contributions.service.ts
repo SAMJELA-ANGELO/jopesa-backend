@@ -6,6 +6,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { InitiateContributionPaymentDto } from './dto/initiate-contribution-payment.dto';
 import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
 import { PaymentsService } from '../payments/payments.service';
+import { computeMembershipBadge } from '../alumni/membership-badge';
 
 @Injectable()
 export class ContributionsService {
@@ -24,6 +25,77 @@ export class ContributionsService {
 
   async findAll() {
     return this.prisma.contribution.findMany({ orderBy: { createdAt: 'desc' } });
+  }
+
+  async getRegistrationOverview(userId: string) {
+    const [contributions, profile] = await Promise.all([
+      this.prisma.contribution.findMany({
+        where: { type: 'REGISTRATION_FEE' },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          payments: {
+            where: { payerId: userId },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      }),
+      this.prisma.alumniProfile.findUnique({
+        where: { userId },
+        include: { batch: true },
+      }),
+    ]);
+
+    const members = profile
+      ? await this.prisma.alumniProfile.findMany({
+          where: { batchId: profile.batchId },
+          orderBy: { createdAt: 'asc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                contributionPayments: {
+                  include: {
+                    contribution: { select: { type: true, title: true } },
+                  },
+                },
+              },
+            },
+          },
+        })
+      : [];
+
+    return {
+      batch: profile?.batch
+        ? {
+            id: profile.batch.id,
+            name: profile.batch.name,
+            year: profile.batch.year,
+          }
+        : null,
+      contributions,
+      hasPaidRegistration: contributions.some((contribution) => {
+        return contribution.payments.some((payment) => payment.status === 'COMPLETED');
+      }),
+      members: members.map((member) => {
+        const memberPayments = member.user?.contributionPayments || [];
+        const paidRegistration = memberPayments.some(
+          (payment) => payment.contribution?.type === 'REGISTRATION_FEE'
+            && payment.status === 'COMPLETED',
+        );
+
+        return {
+          id: member.user?.id || member.id,
+          name: [member.user?.firstName, member.user?.lastName]
+            .filter(Boolean)
+            .join(' ') || 'Alumni',
+          profileImage: member.profileImage,
+          registrationStatus: paidRegistration ? 'REGISTERED' : 'PENDING',
+          membershipBadge: computeMembershipBadge(memberPayments),
+        };
+      }),
+    };
   }
 
   async findOne(id: string) {

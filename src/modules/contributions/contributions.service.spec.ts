@@ -5,7 +5,8 @@ import { ContributionsService } from './contributions.service';
 describe('ContributionsService payment amounts', () => {
   let service: ContributionsService;
   let prisma: {
-    contribution: { findUnique: jest.Mock };
+    contribution: { findUnique: jest.Mock; findMany: jest.Mock };
+    alumniProfile: { findUnique: jest.Mock; findMany: jest.Mock };
     user: { findUnique: jest.Mock };
     payment: { findUnique: jest.Mock };
     contributionPayment: { create: jest.Mock };
@@ -14,7 +15,8 @@ describe('ContributionsService payment amounts', () => {
 
   beforeEach(() => {
     prisma = {
-      contribution: { findUnique: jest.fn() },
+      contribution: { findUnique: jest.fn(), findMany: jest.fn() },
+      alumniProfile: { findUnique: jest.fn(), findMany: jest.fn() },
       user: { findUnique: jest.fn().mockResolvedValue({ id: 'member-1', firstName: 'A', lastName: 'Member', email: 'member@example.com' }) },
       payment: { findUnique: jest.fn().mockResolvedValue(null) },
       contributionPayment: { create: jest.fn().mockResolvedValue({ id: 'contribution-payment-1' }) },
@@ -62,5 +64,46 @@ describe('ContributionsService payment amounts', () => {
 
     await expect(service.initiatePayment('contribution-1', { amount: 0 }, 'member-1')).rejects.toBeInstanceOf(BadRequestException);
     expect(paymentsService.directPay).not.toHaveBeenCalled();
+  });
+
+  it('unlocks registration when a confirmed installment exists and includes batch peers', async () => {
+    prisma.contribution.findMany.mockResolvedValue([{
+      id: 'registration-1',
+      title: 'Alumni Registration',
+      status: 'ACTIVE',
+      installments: [{ id: 'first', label: 'First Installment', amount: 5000 }],
+      payments: [{ id: 'payment-1', status: 'COMPLETED', amount: 5000, installmentLabel: 'First Installment' }],
+    }]);
+    prisma.alumniProfile.findUnique.mockResolvedValue({
+      batchId: 'batch-1',
+      batch: { id: 'batch-1', name: 'Batch 2020', year: 2020 },
+    });
+    prisma.alumniProfile.findMany.mockResolvedValue([{
+      id: 'profile-1',
+      profileImage: null,
+      user: {
+        id: 'member-1',
+        firstName: 'A',
+        lastName: 'Member',
+        contributionPayments: [{
+          status: 'COMPLETED',
+          paymentDate: new Date(),
+          contribution: { type: 'REGISTRATION_FEE', title: 'Alumni Registration' },
+        }],
+      },
+    }]);
+
+    const result = await service.getRegistrationOverview('member-1');
+
+    expect(result.hasPaidRegistration).toBe(true);
+    expect(result.batch).toEqual({ id: 'batch-1', name: 'Batch 2020', year: 2020 });
+    expect(result.members).toEqual([expect.objectContaining({
+      id: 'member-1',
+      registrationStatus: 'REGISTERED',
+      membershipBadge: 'INACTIVE',
+    })]);
+    expect(prisma.alumniProfile.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { batchId: 'batch-1' },
+    }));
   });
 });

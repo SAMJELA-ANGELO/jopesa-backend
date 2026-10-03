@@ -3,6 +3,7 @@ import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } fro
 
 export type ContributionType =
   | 'EVENT_REGISTRATION'
+  | 'REGISTRATION_FEE'
   | 'ANNUAL_FEE'
   | 'GENERAL'
   | 'DONATION'
@@ -33,7 +34,7 @@ export class CreateContributionDto {
   @IsNotEmpty()
   title: string;
 
-  @IsEnum(['EVENT_REGISTRATION', 'ANNUAL_FEE', 'GENERAL', 'DONATION', 'PROJECT', 'OTHER'])
+  @IsEnum(['EVENT_REGISTRATION', 'REGISTRATION_FEE', 'ANNUAL_FEE', 'GENERAL', 'DONATION', 'PROJECT', 'OTHER'])
   type: ContributionType;
 
   @IsString()
